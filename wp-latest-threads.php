@@ -24,7 +24,7 @@
      */
     function prefix_add_my_stylesheet() {
         // Respects SSL, Style.css is relative to the current file
-        wp_register_style( 'prefix-style', plugins_url('latest-threads/style.css') );
+        wp_register_style( 'prefix-style', plugins_url('disqus-recent-comments/style.css') );
         wp_enqueue_style( 'prefix-style' );
     }
 	//Adds an action to display an admin notice if the forum or API keys aren't present
