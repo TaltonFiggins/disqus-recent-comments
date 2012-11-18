@@ -11,6 +11,7 @@
 
    	//Sets the date and time and enables error messages
     date_default_timezone_set('America/Los_Angeles');
+
 	ini_set('display_errors', 'on');
 	//include_once( ABSPATH . 'wp-admin/includes/plugin.php' );
 
@@ -132,12 +133,25 @@
 						//Build the endpiont from the fields selected and put add it to the string.
 						foreach($fields as $key=>$value) { $fields_string .= $key.'='.$value.'&'; }
 						$fields_string = rtrim($fields_string, "&");
-						
+
+					//Checking the length of the comment and trimming it if it's too long.
+					if(strlen($post_list->response[$num_result]->raw_message)>120){$post_message = substr($post_list->response[$num_result]->raw_message,0,120).'...';}
+					else{$post_message = $post_list->response[$num_result]->raw_message;}
+
+					//Getting the thread's information to pull the URL
 					$thread_info = getData($url, $fields_string);
+					//Building a link to the comment
 					$comment_link = $thread_info->response->link.'#comment-'.$post_list->response[$num_result]->id;
-					// Setting the date Month day, Year
-					$post_date  = date('M d, Y', strtotime($post_list->response[$num_result]->createdAt));
-					echo '<div class="recent_post">'.$post_list->response[$num_result]->raw_message.'</br><a href="'.$comment_link.'">'.$post_list->response[$num_result]->author->name.'  -  '.$post_date.'</a></div>';
+					
+					//Converting the timezone brought in through the API. Exmaple pulled from: http://stackoverflow.com/questions/5746531/php-utc-date-time-string-to-timezone
+					$UTC = new DateTimeZone("UTC");
+					$newTZ = new DateTimeZone(date_default_timezone_get());
+					$post_date = new DateTime($post_list->response[$num_result]->createdAt, $UTC );
+					$post_date->setTimezone( $newTZ );
+					$post_date = $post_date->format('M d, Y');
+
+					//Outputting data to the page.
+					echo '<div class="recent_post">'.$post_message.'</br><a href="'.$comment_link.'">'.$post_list->response[$num_result]->author->name.'  -  '.$post_date.'</a></div>';
 					}
 				}
 			}//end variable check
