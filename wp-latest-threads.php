@@ -113,9 +113,9 @@
 		//Getting list of most recent posts
 		$post_list = getData($url, $fields_string);
 
-		//Have you set a forum and API key
+		//Have you set a forum and API key - Should probably add an additional check that they actually work.
 			if($fields->api_key && $fields->forum){
-				//Print Latest Threads Created
+				//Print most recent comments
 				for($num_result = 0; $num_result < $num_results_selected ; $num_result++)
 				{	
 					if (is_null($post_list->response[$num_result]->message)){$num_result = $num_results_selected;}
@@ -143,7 +143,7 @@
 					//Building a link to the comment
 					$comment_link = $thread_info->response->link.'#comment-'.$post_list->response[$num_result]->id;
 					
-					//Converting the timezone brought in through the API. Exmaple pulled from: http://stackoverflow.com/questions/5746531/php-utc-date-time-string-to-timezone
+					//Converting the timezone brought in through the API. Example pulled from: http://stackoverflow.com/questions/5746531/php-utc-date-time-string-to-timezone
 					$UTC = new DateTimeZone("UTC");
 					$newTZ = new DateTimeZone(date_default_timezone_get());
 					$post_date = new DateTime($post_list->response[$num_result]->createdAt, $UTC );
