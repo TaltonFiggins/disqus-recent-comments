@@ -15,6 +15,86 @@
 	ini_set('display_errors', 'on');
 	//include_once( ABSPATH . 'wp-admin/includes/plugin.php' );
 
+	//trigger table creation and deletion
+	register_activation_hook(__FILE__,'rcw_install');
+	register_activation_hook(__FILE__,'rcw_install_data');
+	register_uninstall_hook(__FILE__, 'rcw_uninstall');
+
+	global $rcw_db_version;
+	$rcw_db_version = "1.0";
+
+	//table creation - Tutorial - http://codex.wordpress.org/Creating_Tables_with_Plugins
+	function rcw_install(){
+		global $wpdb;
+		global $rcw_db_version;
+		//setting a table name
+		$table_name = $wpdb->prefix.'recent_comments';
+
+		//These fields are incorrect and need to be updated
+		$sql = "CREATE TABLE $table_name (
+			id mediumint(9) NOT NULL AUTO_INCREMENT,
+			time datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
+			name tinytext NOT NULL,
+			text text NOT NULL,
+			url VARCHAR(55) DEFAULT '' NOT NULL,
+			UNIQUE KEY id (id)
+			);";
+
+		require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+		dbDelta($sql);
+
+		add_option("rcw_db_version", $rcw_db_version);
+	}
+
+	//initial install data
+	function rcw_install_data(){
+
+		global $wpdb;
+
+		$welcome_name = "Talton Figgins";
+		$welcome_text = "Welcome to my installation.";
+
+		$rows_affected = $wpdb->insert( $table_name, array( 'time' => current_time(mysql), 'name' => $welcome_name, 'text' => $welcome_text ) ); 		
+	}
+
+	//upgrade data for future versions
+	function rcw_upgrade(){
+		global $wpdb;
+		$installed_version = get_option( "rcw_db_version");
+
+		if( $installed_ver != $jal_db_version ) {
+			$sql = "CREATE TABLE $table_name (
+			  id mediumint(9) NOT NULL AUTO_INCREMENT,
+			  time datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
+			  name tinytext NOT NULL,
+			  text text NOT NULL,
+			  url VARCHAR(100) DEFAULT '' NOT NULL,
+			  UNIQUE KEY id (id) 
+			  );";
+
+      require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+      dbDelta($sql);
+
+      update_option( "rcw_db_version", $rcw_db_version );
+      }
+	}
+
+	//Hook for checking for update
+	function myplugin_update_db_check() {
+    global $rcw_db_version;
+	    if (get_site_option('rcw_db_version') != $rcw_db_version) {
+	        rcw_install();
+	    }
+	}
+	add_action('plugins_loaded', 'myplugin_update_db_check');
+
+	//Drop data from table
+	function rcw_uninstall() {
+		global $wpdb;
+		$table_name = $wpdb->prefix.'recent_comments';
+		$wpdb->query("DROP TABLE {$table_name}");
+	}
+
     /**
      * Register with hook 'wp_enqueue_scripts', which can be used for front end CSS and JavaScript
      */
@@ -83,7 +163,8 @@
 
 		$fields = (object) array(
 			'api_key' => get_option('disqus_public_key'),
-			'forum' => get_option('disqus_forum_url')
+			'forum' => get_option('disqus_forum_url'),
+			'related' => 'thread'
 		);
 
 		//Build the endpiont from the fields selected and put add it to the string.
@@ -120,28 +201,13 @@
 				{	
 					if (is_null($post_list->response[$num_result]->message)){$num_result = $num_results_selected;}
 					else{
-						// Building a new string. Seems repetiive. May need to condense this into a single function.
-						$fields_string = NULL;
-						$url = 'http://disqus.com/api/3.0/threads/details.json?';
-
-						$fields = (object) array(
-							'api_key' => get_option('disqus_public_key'),
-							'forum' => get_option('disqus_forum_url'),
-							'thread' => $post_list->response[$num_result]->thread
-						);
-
-						//Build the endpiont from the fields selected and put add it to the string.
-						foreach($fields as $key=>$value) { $fields_string .= $key.'='.$value.'&'; }
-						$fields_string = rtrim($fields_string, "&");
-
+				
 					//Checking the length of the comment and trimming it if it's too long.
 					if(strlen($post_list->response[$num_result]->raw_message)>120){$post_message = substr($post_list->response[$num_result]->raw_message,0,120).'...';}
 					else{$post_message = $post_list->response[$num_result]->raw_message;}
 
 					//Getting the thread's information to pull the URL
 					$thread_info = getData($url, $fields_string);
-					//Building a link to the comment
-					$comment_link = $thread_info->response->link.'#comment-'.$post_list->response[$num_result]->id;
 					
 					//Converting the timezone brought in through the API. Example pulled from: http://stackoverflow.com/questions/5746531/php-utc-date-time-string-to-timezone
 					$UTC = new DateTimeZone("UTC");
@@ -151,7 +217,7 @@
 					$post_date = $post_date->format('M d, Y');
 
 					//Outputting data to the page.
-					echo '<div class="recent_post">'.$post_message.'</br><a href="'.$comment_link.'">'.$post_list->response[$num_result]->author->name.'  -  '.$post_date.'</a></div>';
+					echo '<div class="recent_post">'.$post_message.'</br><a href="'.$post_list->response[$num_result]->url.'">'.$post_list->response[$num_result]->author->name.'  -  '.$post_date.'</a></div>';
 					}
 				}
 			}//end variable check
