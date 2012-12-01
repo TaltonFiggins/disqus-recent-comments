@@ -176,13 +176,13 @@
 	add_action( 'my_task_hook', 'my_task_function' );
 
 	add_action( 'widgets_init', 'my_task_function' ); // function to load my widget  
+
 	function my_task_function() {
 	  	global $wpdb;
 		$table_name = $wpdb->prefix.'recent_comments';
 		$instance = get_option('widget_recent_disqus_comments'); 
 
-
-		$num_results_selected = $instance[2]['num_results_selected'];
+		$num_results_selected = $instance[$this]['num_results_selected'];
 
 		//var_dump($instance);
 
@@ -219,7 +219,7 @@
 
 		//Getting list of most recent posts
 		$post_list = getData($url, $fields_string);
-
+		//var_dump($post_list);
 
 			//Have you set a forum and API key - Should probably add an additional check that they actually work.
 			if($fields->api_key && $fields->forum){
