@@ -295,11 +295,15 @@
 		    echo $before_title . $title . $after_title;
 		    }  
 
+
 			for($num_result = 0; $num_result < $num_results_selected ; $num_result++){
 				$comment = $wpdb->get_row("SELECT * FROM $table_name WHERE id = $num_result+1");
-				//Outputting data to the page.
-					echo '<div class="recent_comments">'.$comment->message.'</br><a href="'.$comment->thread_url.'">'.$comment->author_name.'  -  '.$comment->comment_date.'</a></div>';
-					
+
+					if (empty($comment->message)){$num_result = $num_results_selected;}
+						else{
+					//Outputting data to the page.
+						echo '<div class="recent_comments">'.$comment->message.'</br><a href="'.$comment->thread_url.'">'.$comment->author_name.'  -  '.$comment->comment_date.'</a></div>';
+					}// end if/else
 				}
 
 		}// End of the widget function
