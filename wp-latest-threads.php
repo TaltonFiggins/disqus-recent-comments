@@ -18,7 +18,7 @@
 	//trigger table creation and deletion
 	register_activation_hook(__FILE__,'rcw_install');
 	register_activation_hook(__FILE__,'rcw_install_data');
-	register_uninstall_hook(__FILE__, 'rcw_uninstall');
+	register_deactivation_hook(__FILE__, 'rcw_uninstall');
 
 	global $rcw_db_version;
 	$rcw_db_version = "1.0";
@@ -33,16 +33,17 @@
 		//These fields are incorrect and need to be updated
 		$sql = "CREATE TABLE $table_name (
 			id mediumint(9) NOT NULL AUTO_INCREMENT,
-			time datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
-			name tinytext NOT NULL,
-			text text NOT NULL,
-			url VARCHAR(55) DEFAULT '' NOT NULL,
-			UNIQUE KEY id (id)
-			);";
+			message text NOT NULL,
+			thread_url text NOT NULL,
+			author_name text NOT NULL,
+			comment_date text NOT NULL,
+			UNIQUE KEY id (id) 
+			  );";
 
 		require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
 		dbDelta($sql);
 
+		
 		add_option("rcw_db_version", $rcw_db_version);
 	}
 
@@ -50,11 +51,19 @@
 	function rcw_install_data(){
 
 		global $wpdb;
-
-		$welcome_name = "Talton Figgins";
-		$welcome_text = "Welcome to my installation.";
-
-		$rows_affected = $wpdb->insert( $table_name, array( 'time' => current_time(mysql), 'name' => $welcome_name, 'text' => $welcome_text ) ); 		
+		$table_name = $wpdb->prefix.'recent_comments';
+		for($max_rows=0; $max_rows < 10; $max_rows++){
+			$wpdb->insert( 
+				$table_name, 
+				array(
+					'id' => $max_rows+1,
+					'message' => '', 
+					'thread_url' => '',
+					'author_name' => '',
+					'comment_date' => ''
+				)
+			);
+		}//end 'for' loop	
 	}
 
 	//upgrade data for future versions
@@ -77,7 +86,22 @@
 
       update_option( "rcw_db_version", $rcw_db_version );
       }
+
+
 	}
+
+
+	/*function echoInstance(){
+		global $wpdb;
+		
+
+		var_dump($checkItOut);
+
+		$mylink = $wpdb->get_row("SELECT * FROM $table_name WHERE id = 1");
+		echo $mylink->message;
+
+	}
+	add_action('plugins_loaded', 'echoInstance');*/
 
 	//Hook for checking for update
 	function myplugin_update_db_check() {
@@ -93,13 +117,13 @@
 		global $wpdb;
 		$table_name = $wpdb->prefix.'recent_comments';
 		$wpdb->query("DROP TABLE {$table_name}");
+		delete_option( 'widget_recent_disqus_comments' );
 	}
 
     /**
      * Register with hook 'wp_enqueue_scripts', which can be used for front end CSS and JavaScript
      */
     add_action( 'wp_enqueue_scripts', 'prefix_add_my_stylesheet' );
-
     /**
      * Enqueue plugin style-file
      */
@@ -132,33 +156,36 @@
 		}   
 	}
 
-	add_action( 'widgets_init', 'my_widget' ); // function to load my widget  
-	function my_widget() {
-		register_widget('latest_threads'); // function to register my widget
-	}                   
+	//Adds the schedule option
+	add_filter( 'cron_schedules', 'cron_add_weekly' );
+ 
+ 	function cron_add_weekly( $schedules ) {
+	 	// Adds once weekly to the existing schedules.
+	 	$schedules['five_minutes'] = array(
+	 		'interval' => 60,
+	 		'display' => __( 'Once a Minute' )
+	 	);
+	 	return $schedules;
+ 	}
 
-	// Class which contains the entire widget script * I should probably abstract most of this stuff. *
-	class latest_threads extends WP_Widget { 
+ 	//Activates the schedule option
+	if ( ! wp_next_scheduled( 'my_task_hook' ) ) {
+	  wp_schedule_event( time(), 'five_minutes', 'my_task_hook' );
+	}
 
-		function latest_threads() {
-				$widget_ops = array( 'classname' => 'latest_threads', 'description' => __('Displays the latest comments for your website made through Disqus.','stuffage') );  
-		        $control_ops = array( 'width' => '100px', 'height' => '350px', 'id_base' => 'latest_threads' );  
-		        $this->WP_Widget( 'latest_threads', __('Latest Comments', 'stuff'), $widget_ops, $control_ops );  
-		}                     
+	add_action( 'my_task_hook', 'my_task_function' );
 
-		// What are args?
-		function widget($args, $instance) {
+	add_action( 'widgets_init', 'my_task_function' ); // function to load my widget  
+	function my_task_function() {
+	  	global $wpdb;
+		$table_name = $wpdb->prefix.'recent_comments';
+		$instance = get_option('widget_recent_disqus_comments'); 
 
-		extract($args);
-		$title = apply_filters('widget_title', $instance['title'] );  
-		$name = $instance['name'];  
 
-		//$show_info = isset( $instance['show_info'] ) ? $instance['show_info'] : false; //? 
-		$num_results_selected = $instance['num_results_selected']; 
-		echo $before_widget;  
-		if ( isset( $instance['show_info'] ) )  
-	    echo $before_title . $title . $after_title;  
-		
+		$num_results_selected = $instance[2]['num_results_selected'];
+
+		//var_dump($instance);
+
 		$url = 'http://disqus.com/api/3.0/forums/listPosts.json?';
 
 		$fields = (object) array(
@@ -166,7 +193,6 @@
 			'forum' => get_option('disqus_forum_url'),
 			'related' => 'thread'
 		);
-
 		//Build the endpiont from the fields selected and put add it to the string.
 		foreach($fields as $key=>$value) { $fields_string .= $key.'='.$value.'&'; }
 		$fields_string = rtrim($fields_string, "&");
@@ -194,7 +220,8 @@
 		//Getting list of most recent posts
 		$post_list = getData($url, $fields_string);
 
-		//Have you set a forum and API key - Should probably add an additional check that they actually work.
+
+			//Have you set a forum and API key - Should probably add an additional check that they actually work.
 			if($fields->api_key && $fields->forum){
 				//Print most recent comments
 				for($num_result = 0; $num_result < $num_results_selected ; $num_result++)
@@ -206,8 +233,6 @@
 					if(strlen($post_list->response[$num_result]->raw_message)>120){$post_message = substr($post_list->response[$num_result]->raw_message,0,120).'...';}
 					else{$post_message = $post_list->response[$num_result]->raw_message;}
 
-					//Getting the thread's information to pull the URL
-					$thread_info = getData($url, $fields_string);
 					
 					//Converting the timezone brought in through the API. Example pulled from: http://stackoverflow.com/questions/5746531/php-utc-date-time-string-to-timezone
 					$UTC = new DateTimeZone("UTC");
@@ -215,12 +240,67 @@
 					$post_date = new DateTime($post_list->response[$num_result]->createdAt, $UTC );
 					$post_date->setTimezone( $newTZ );
 					$post_date = $post_date->format('M d, Y');
-
+					
 					//Outputting data to the page.
-					echo '<div class="recent_post">'.$post_message.'</br><a href="'.$post_list->response[$num_result]->url.'">'.$post_list->response[$num_result]->author->name.'  -  '.$post_date.'</a></div>';
-					}
-				}
+					
+					
+					//updating the db rows that I havet
+					$wpdb->update( 
+						$table_name, 
+						array(
+							'message' => $post_message, 
+							'thread_url' => $post_list->response[$num_result]->url,
+							'author_name' => $post_list->response[$num_result]->author->name,
+							'comment_date' => $post_date
+						),
+						array( 'ID' => $num_result+1 )
+
+					);
+
+					}//end 'if' checking for a message
+				}//end for loop for printing
 			}//end variable check
+	}
+
+	add_action( 'widgets_init', 'my_widget' ); // function to load my widget  
+	function my_widget() {
+		register_widget('recent_disqus_comments'); // function to register my widget
+
+	}                   
+
+	// Class which contains the entire widget script
+	class recent_disqus_comments extends WP_Widget {
+
+		function recent_disqus_comments() {
+
+				$widget_ops = array( 'classname' => 'recent_disqus_comments', 'description' => __('Displays the latest comments for your website made through Disqus.','stuffage') );  
+		        $control_ops = array( 'width' => '100px', 'height' => '350px', 'id_base' => 'recent_disqus_comments' );  
+		        $this->WP_Widget( 'recent_disqus_comments', __('Recent Disqus Comments', 'stuff'), $widget_ops, $control_ops );  
+		}   
+
+
+
+		// What are args?
+		function widget($args, $instance) {
+			
+			global $wpdb;
+			$table_name = $wpdb->prefix.'recent_comments';
+			$num_results_selected = $instance['num_results_selected'];
+
+
+			$title = apply_filters('widget_title', $instance['title'] );  
+
+			echo $before_widget;  
+			if ( isset( $instance['show_info'] ) ) {
+		    echo $before_title . $title . $after_title;
+		    }  
+
+			for($num_result = 0; $num_result < $num_results_selected ; $num_result++){
+				$comment = $wpdb->get_row("SELECT * FROM $table_name WHERE id = $num_result+1");
+				//Outputting data to the page.
+					echo '<div class="recent_comments">'.$comment->message.'</br><a href="'.$comment->thread_url.'">'.$comment->author_name.'  -  '.$comment->comment_date.'</a></div>';
+					
+				}
 
 		}// End of the widget function
 
@@ -238,8 +318,8 @@
 	function form( $instance ) {
 
 			//Set up some default widget settings.
-			$defaults = array('num_results_selected' => '5', 'title' => 'Most Recent Threads', 'show_info' => true);
-			$instance = wp_parse_args( (array) $instance, $defaults ); ?>
+			$defaults = array('num_results_selected' => '5', 'title' => 'Most Recent Comments', 'show_info' => true);
+			$instance = wp_parse_args( (array) $instance, $defaults); ?>
 			
 			<!--Assign a Title -->
 			 <p>
