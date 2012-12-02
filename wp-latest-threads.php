@@ -1,11 +1,10 @@
 <?php
    /*
-   Plugin Name: Unofficial Disqus Most Popular Comments
-   Plugin URI: http://prefadedpop.com
-   Description: A plugin that list the most commented threads
+   Plugin Name: Most Recent Comments from Disqus
+   Description: A plugin that lists the most recent comments from Disqus.
    Version: v1.0
-   Author: MediaMisfit
-   Author URI: http://mrtotallyawesome.com
+   Author: Talton
+   Author URI: http://prefadedpop.com
    License: 
    */
 
@@ -33,7 +32,9 @@
 		//These fields are incorrect and need to be updated
 		$sql = "CREATE TABLE $table_name (
 			id mediumint(9) NOT NULL AUTO_INCREMENT,
+			thread_title text NOT NULL,
 			message text NOT NULL,
+			comment_url text NOT NULL,
 			thread_url text NOT NULL,
 			author_name text NOT NULL,
 			comment_date text NOT NULL,
@@ -57,7 +58,9 @@
 				$table_name, 
 				array(
 					'id' => $max_rows+1,
+					'thread_title' => '',
 					'message' => '', 
+					'comment_url' => '',
 					'thread_url' => '',
 					'author_name' => '',
 					'comment_date' => ''
@@ -73,12 +76,14 @@
 
 		if( $installed_ver != $jal_db_version ) {
 			$sql = "CREATE TABLE $table_name (
-			  id mediumint(9) NOT NULL AUTO_INCREMENT,
-			  time datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
-			  name tinytext NOT NULL,
-			  text text NOT NULL,
-			  url VARCHAR(100) DEFAULT '' NOT NULL,
-			  UNIQUE KEY id (id) 
+			id mediumint(9) NOT NULL AUTO_INCREMENT,
+			thread_title text NOT NULL,
+			message text NOT NULL,
+			comment_url text NOT NULL,
+			thread_url text NOT NULL,
+			author_name text NOT NULL,
+			comment_date text NOT NULL,
+			UNIQUE KEY id (id) 
 			  );";
 
       require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
@@ -180,9 +185,8 @@
 	function my_task_function() {
 	  	global $wpdb;
 		$table_name = $wpdb->prefix.'recent_comments';
-		$instance = get_option('widget_recent_disqus_comments'); 
 
-		$num_results_selected = $instance[$this]['num_results_selected'];
+		$max_num_results = 10;
 
 		//var_dump($instance);
 
@@ -224,14 +228,20 @@
 			//Have you set a forum and API key - Should probably add an additional check that they actually work.
 			if($fields->api_key && $fields->forum){
 				//Print most recent comments
-				for($num_result = 0; $num_result < $num_results_selected ; $num_result++)
+				for($num_result = 0; $num_result < $max_num_results ; $num_result++)
 				{	
-					if (is_null($post_list->response[$num_result]->message)){$num_result = $num_results_selected;}
+					if (is_null($post_list->response[$num_result]->message)){$num_result = $max_num_results;}
 					else{
+					
+					$post_message  = strip_tags($post_list->response[$num_result]->message);
 				
 					//Checking the length of the comment and trimming it if it's too long.
-					if(strlen($post_list->response[$num_result]->raw_message)>120){$post_message = substr($post_list->response[$num_result]->raw_message,0,120).'...';}
-					else{$post_message = $post_list->response[$num_result]->raw_message;}
+					if(strlen($post_message)>120){$post_message = substr($post_message, 0 , 120);
+						$post_message = substr($post_message, 0 , strripos($post_message, ' ')).' ...';}
+					
+					$post_title = $post_list->response[$num_result]->thread->title;
+					if(strlen($post_title)>30){$post_title = substr($post_title, 0 , 30);
+						$post_title = substr($post_title, 0 , strripos($post_title, ' ')).' ...';}
 
 					
 					//Converting the timezone brought in through the API. Example pulled from: http://stackoverflow.com/questions/5746531/php-utc-date-time-string-to-timezone
@@ -248,7 +258,9 @@
 					$wpdb->update( 
 						$table_name, 
 						array(
+							'thread_title' => $post_title,
 							'message' => $post_message, 
+							'comment_url' => $post_list->response[$num_result]->thread->link,
 							'thread_url' => $post_list->response[$num_result]->url,
 							'author_name' => $post_list->response[$num_result]->author->name,
 							'comment_date' => $post_date
@@ -273,9 +285,9 @@
 
 		function recent_disqus_comments() {
 
-				$widget_ops = array( 'classname' => 'recent_disqus_comments', 'description' => __('Displays the latest comments for your website made through Disqus.','stuffage') );  
+				$widget_ops = array( 'classname' => 'recent_disqus_comments', 'description' => __('Displays the most recent comments from Disqus.','stuffage') );  
 		        $control_ops = array( 'width' => '100px', 'height' => '350px', 'id_base' => 'recent_disqus_comments' );  
-		        $this->WP_Widget( 'recent_disqus_comments', __('Recent Disqus Comments', 'stuff'), $widget_ops, $control_ops );  
+		        $this->WP_Widget( 'recent_disqus_comments', 'Recent Comments from Disqus', $widget_ops, $control_ops );  
 		}   
 
 
@@ -290,10 +302,11 @@
 
 			$title = apply_filters('widget_title', $instance['title'] );  
 
-			echo $before_widget;  
+			echo '<aside class="widget recent_comments">';  
 			if ( isset( $instance['show_info'] ) ) {
-		    echo $before_title . $title . $after_title;
-		    }  
+		    echo '<h1 class="widget-title">'.$before_title . $title . $after_title.'</h1>';
+		    }
+		    echo '<ul>';
 
 
 			for($num_result = 0; $num_result < $num_results_selected ; $num_result++){
@@ -302,9 +315,11 @@
 					if (empty($comment->message)){$num_result = $num_results_selected;}
 						else{
 					//Outputting data to the page.
-						echo '<div class="recent_comments">'.$comment->message.'</br><a href="'.$comment->thread_url.'">'.$comment->author_name.'  -  '.$comment->comment_date.'</a></div>';
+						echo '<li><span class="thread_title"><a href="'.$comment->thread_url.'">'.$comment->thread_title.'</a></span><p>'.$comment->message.'</p><span claass="author_date"><a href="'.$comment->thread_url.'">'.$comment->author_name.'  -  '.$comment->comment_date.'</a></span></li>';
 					}// end if/else
 				}
+			echo '</ul></aside>';
+
 
 		}// End of the widget function
 
