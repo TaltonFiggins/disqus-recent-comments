@@ -260,8 +260,8 @@
 						array(
 							'thread_title' => $post_title,
 							'message' => $post_message, 
-							'comment_url' => $post_list->response[$num_result]->thread->link,
-							'thread_url' => $post_list->response[$num_result]->url,
+							'comment_url' =>  $post_list->response[$num_result]->url,
+							'thread_url' => $post_list->response[$num_result]->thread->link,
 							'author_name' => $post_list->response[$num_result]->author->name,
 							'comment_date' => $post_date
 						),
@@ -315,7 +315,7 @@
 					if (empty($comment->message)){$num_result = $num_results_selected;}
 						else{
 					//Outputting data to the page.
-						echo '<li><span class="thread_title"><a href="'.$comment->thread_url.'">'.$comment->thread_title.'</a></span><p>'.$comment->message.'</p><span claass="author_date"><a href="'.$comment->thread_url.'">'.$comment->author_name.'  -  '.$comment->comment_date.'</a></span></li>';
+						echo '<li><span class="thread_title"><a href="'.$comment->thread_url.'">'.$comment->thread_title.'</a></span><p>'.$comment->message.'</p><span claass="author_date"><a href="'.$comment->comment_url.'">'.$comment->author_name.'  -  '.$comment->comment_date.'</a></span></li>';
 					}// end if/else
 				}
 			echo '</ul></aside>';
