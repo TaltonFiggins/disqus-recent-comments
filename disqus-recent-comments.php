@@ -267,7 +267,7 @@
 	class recent_disqus_comments extends WP_Widget {
 
 		function recent_disqus_comments() {
-				$widget_ops = array( 'classname' => 'recent_disqus_comments', 'description' => __('Displays the most recent comments from Disqus.','stuffage') );  
+				$widget_ops = array( 'classname' => 'recent_disqus_comments', 'description' => __('Displays the most recent comments from Disqus.','Disqus') );  
 		        $control_ops = array( 'width' => '100px', 'height' => '350px', 'id_base' => 'recent_disqus_comments' );  
 		        $this->WP_Widget( 'recent_disqus_comments', 'Recent Comments from Disqus', $widget_ops, $control_ops );  
 		}   
