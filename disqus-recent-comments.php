@@ -201,7 +201,7 @@
 			// close connection
 			curl_close($session);
 
-			// show the response in the browser
+			// return the results provided
 			return  $data = json_decode($results);
 
 			}
