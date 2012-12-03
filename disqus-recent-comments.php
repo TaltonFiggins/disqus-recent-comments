@@ -30,7 +30,6 @@
 		//setting a table name
 		$table_name = $wpdb->prefix.'recent_comments';
 
-		//These fields are incorrect and need to be updated
 		$sql = "CREATE TABLE $table_name (
 			id mediumint(9) NOT NULL AUTO_INCREMENT,
 			thread_title text NOT NULL,
