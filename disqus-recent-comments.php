@@ -20,7 +20,6 @@
 	register_activation_hook(__FILE__,'rcw_install_data');
 	register_deactivation_hook(__FILE__, 'rcw_uninstall');
 
-
 	global $wpdb;
 	$rcw_db_version = '1.0';
 
