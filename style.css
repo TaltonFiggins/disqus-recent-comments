@@ -15,7 +15,7 @@
 
 /*Compensating for the <p> tag output with the message JSON*/
 .recent_comments ul li p{
-	margin: 5px 0;
+	margin: 5px 0 !important;
 }
 
 .recent_comments .thread_title{
