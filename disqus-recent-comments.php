@@ -9,7 +9,7 @@
    */
 
    	//Sets the date and time set within WP and enables error messages
-    date_default_timezone_set(get_option('timezone_string'));
+  date_default_timezone_set(get_option('timezone_string'));
 	ini_set('display_errors', 'on');
 
 	//Used from checking for plugins
@@ -126,15 +126,15 @@
         wp_enqueue_style( 'prefix-style' );
     }
 
-	//Admin notice of the Disqus plugin isn't active or the public API key is missing
+	//Admin notice of the Disqus plugin isn't active or the secret API key is missing
 	add_action('admin_notices', 'showAdminMessages');   
 	
 	function showAdminMessages()
 		{
-			$key = get_option('disqus_public_key'); 
+			$key = get_option('disqus_secret_key'); 
 
 			if(!$key || !is_plugin_active('disqus-comment-system/disqus.php')){
-			   	$message = 'You must first configure the <a href="http://wordpress.org/extend/plugins/disqus-comment-system/" target="_blank">Disqus plugin</a> with a forum and <a href="http://help.disqus.com/customer/portal/articles/787016-how-to-create-an-api-application" target="_blank">Public API key</a> before enabling the Recent Comments from Disqus widget.';
+			   	$message = __( 'You must first configure the <a href="http://wordpress.org/extend/plugins/disqus-comment-system/" target="_blank">Disqus plugin</a> with a forum and <a href="http://help.disqus.com/customer/portal/articles/787016-how-to-create-an-api-application" target="_blank">Secret API key</a> before enabling the Recent Comments from Disqus widget.' );
 			 showMessage($message);
 			}   
 		}
@@ -177,7 +177,7 @@
 		$url = 'http://disqus.com/api/3.0/forums/listPosts.json?';
 
 		$fields = (object) array(
-			'api_key' => get_option('disqus_public_key'),
+			'api_key' => get_option('disqus_secret_key'),
 			'forum' => get_option('disqus_forum_url'),
 			'related' => 'thread'
 		);
@@ -268,7 +268,7 @@
 		function recent_disqus_comments() {
 				$widget_ops = array( 'classname' => 'recent_disqus_comments', 'description' => __('Displays the most recent comments from Disqus.','Disqus') );  
 		        $control_ops = array( 'width' => '100px', 'height' => '350px', 'id_base' => 'recent_disqus_comments' );  
-		        $this->WP_Widget( 'recent_disqus_comments', 'Recent Comments from Disqus', $widget_ops, $control_ops );  
+		        $this->WP_Widget( 'recent_disqus_comments', __( 'Recent Comments from Disqus' ), $widget_ops, $control_ops );  
 		}   
 
 		//Outputting data
@@ -282,7 +282,7 @@
 			$title = apply_filters('widget_title', $instance['title'] );  
 
 
-			$key = get_option('disqus_public_key');
+			$key = get_option('disqus_secret_key');
 
 			if($key && is_plugin_active('disqus-comment-system/disqus.php')){
 				echo '<aside class="widget recent_comments">';  
@@ -325,13 +325,13 @@
 			
 			<!--Assign a Title -->
 			 <p>
-	               <label for="<?php echo $this->get_field_id( 'title' ); ?>">Title</label>
+	               <label for="<?php echo $this->get_field_id( 'title' ); ?>"><?php echo __( 'Title' ) ?></label>
 	               <input id="<?php echo $this->get_field_id( 'title' ); ?>" name="<?php echo $this->get_field_name( 'title' ); ?>" value="<?php echo $instance['title']; ?>" style="width:100%;" />
 	          </p>
 
 
 			<!-- Number of Results to show -->
-			<label for="<?php echo $this->get_field_id( 'num_results_selected' ); ?> ">Number of Results:</label>
+			<label for="<?php echo $this->get_field_id( 'num_results_selected' ); ?> "><?php echo __( 'Number of Results:' ) ?></label>
 			<select id="<?php echo $this->get_field_id( 'num_results_selected' ); ?>" name="<?php echo $this->get_field_name( 'num_results_selected' ); ?>">
 	    		 <option value="5" <?php selected($instance['num_results_selected'], '5'); ?>>5</option>
 	    		 <option value="6" <?php selected($instance['num_results_selected'], '6'); ?>>6</option>
@@ -344,7 +344,7 @@
 			<!-- Opt to display the title -->
 			 <p>
 	             <input class="checkbox" type="checkbox" <?php checked( $instance['show_info'], true ); ?> id="<?php echo $this->get_field_id( 'show_info' ); ?>" name="<?php echo $this->get_field_name( 'show_info' ); ?>" />
-	             <label for="<?php echo $this->get_field_id( 'show_info' ); ?>">Display Title?</label>
+	             <label for="<?php echo $this->get_field_id( 'show_info' ); ?>"><?php echo __( 'Display Title?' ) ?></label>
 	          </p>
 
 
