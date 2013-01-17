@@ -320,7 +320,7 @@
 	function form( $instance ) {
 
 			//Set up some default widget settings.
-			$defaults = array('num_results_selected' => '5', 'title' => _( 'Most Recent Comments', 'show_info' => true);
+			$defaults = array('num_results_selected' => '5', 'title' => __( 'Most Recent Comments' ), 'show_info' => true );
 			$instance = wp_parse_args( (array) $instance, $defaults); ?>
 			
 			<!--Assign a Title -->
