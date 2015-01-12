@@ -177,7 +177,7 @@
 		$url = 'http://disqus.com/api/3.0/forums/listPosts.json?';
 
 		$fields = (object) array(
-			'api_key' => get_option('disqus_secret_key'),
+			'api_secret' => get_option('disqus_secret_key'),
 			'forum' => get_option('disqus_forum_url'),
 			'related' => 'thread'
 		);
@@ -210,7 +210,7 @@
 		$post_list = getData($url, $fields_string);
 
 			//Have you set a forum and API key
-			if($fields->api_key && $fields->forum){
+			if($fields->api_secret && $fields->forum){
 
 				//Print most recent comments
 				for($num_result = 0; $num_result < $max_num_results ; $num_result++)
